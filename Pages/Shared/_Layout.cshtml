@@ -1,0 +1,165 @@
+﻿@{
+    Layout = null;
+    var title = ViewData["Title"] as string ?? "Quotely";
+}
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@title — Quotely</title>
+    <link rel="icon" href="/48.png" />
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial;
+            background: #0b1220;
+            color: #e6e8ef;
+        }
+
+        a {
+            color: #8ab4ff;
+            text-decoration: none;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 18px;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+            nav .left a {
+                margin-right: 16px;
+            }
+
+        .btn {
+            background: #5577ff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            cursor: pointer;
+        }
+
+            .btn.secondary {
+                background: transparent;
+                border: 1px solid #3b4769;
+                color: #c7d2fe;
+            }
+
+        .pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border: 1px solid #3b4769;
+            border-radius: 999px;
+            font-size: 12px;
+            margin: 2px 6px 2px 0;
+        }
+
+        .card {
+            background: #0f172a;
+            border: 1px solid #1f2a44;
+            border-radius: 14px;
+            padding: 16px;
+        }
+
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .muted {
+            color: #9aa4bf;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: #9aa4bf;
+            margin-bottom: 6px;
+        }
+
+        input, textarea {
+            width: 100%;
+            background: #0b1220;
+            color: #e6e8ef;
+            border: 1px solid #293655;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        header-email {
+            opacity: .85
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <div class="left">
+                <a href="/Quotes">My Quotes</a>
+                <a href="/Add">Add</a>
+                <a href="/Random">Random</a>
+            </div>
+            <div class="right">
+                <span id="who" class="muted"></span>
+                <button id="signout" class="btn secondary" style="margin-left:10px;">Sign out</button>
+            </div>
+        </nav>
+
+        @RenderBody()
+    </div>
+
+    <script>
+        // ---------------- Shared helpers ----------------
+        function token() { return localStorage.getItem('quotely_token') || ''; }
+        function setToken(t) { localStorage.setItem('quotely_token', t || ''); }
+        function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({
+            '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+        }[c])); }
+
+        function decodeJwt(t){
+            try{
+                const p = t.split('.')[1];
+                return JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));
+            }catch{ return null; }
+        }
+
+        function requireAuth(){
+            const t = token();
+            if(!t){ if(location.pathname.toLowerCase() !== '/login') location.href = '/Login'; return; }
+            // show email if available
+            const p = decodeJwt(t);
+            const email = p?.email || '';
+            document.getElementById('who').textContent = email;
+        }
+
+        // sign out
+        document.getElementById('signout')?.addEventListener('click', () => {
+            setToken('');
+            location.href = '/Login';
+        });
+    </script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

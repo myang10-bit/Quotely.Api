@@ -1,0 +1,73 @@
+﻿@page "/Add"
+@{
+    ViewData["Title"] = "Add Quote";
+    Layout = "_Layout";
+}
+
+/* requireAuth() and token() come from your shared layout */
+<script>requireAuth();</script>
+
+<div class="card" style="max-width: 720px;">
+    <h3>Add a quote</h3>
+
+    <label>Quote text *</label>
+    <textarea id="text" rows="4" placeholder="“We suffer more in imagination than in reality.”"></textarea>
+
+    <div class="row">
+        <div>
+            <label>Source title</label>
+            <input id="sourceTitle" placeholder="Letters from a Stoic" />
+        </div>
+        <div>
+            <label>Source author</label>
+            <input id="sourceAuthor" placeholder="Seneca" />
+        </div>
+    </div>
+
+    <label>Source URL</label>
+    <input id="sourceUrl" placeholder="https://example.com" />
+
+    <label>Note</label>
+    <input id="note" placeholder="Why it matters…" />
+
+    <label>Tags (comma separated)</label>
+    <input id="tags" placeholder="wisdom, stoicism" />
+
+    <div class="row" style="margin-top:10px;">
+        <button class="btn" onclick="save()">Save</button>
+        <a class="btn secondary" href="/Quotes">Cancel</a>
+    </div>
+
+    <p id="status" class="muted"></p>
+</div>
+
+<script>
+    async function save(){
+        const status = document.getElementById('status');
+
+        const body = {
+            text: val('text'),
+            sourceTitle: val('sourceTitle') || null,
+            sourceAuthor: val('sourceAuthor') || null,
+            sourceUrl: val('sourceUrl') || null,
+            note: val('note') || null,
+            tags: (val('tags') ? val('tags').split(',').map(s => s.trim()).filter(Boolean) : [])
+        };
+
+        if(!body.text){ status.textContent = 'Quote text is required.'; return; }
+
+        const res = await fetch('/api/quotes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() },
+            body: JSON.stringify(body)
+        });
+
+        const txt = await res.text();
+        if(!res.ok){ status.textContent = `Error ${res.status}: ${txt}`; return; }
+
+        // success -> go back to list
+        window.location.href = '/Quotes';
+    }
+
+    function val(id){ return (document.getElementById(id).value || '').trim(); }
+</script>

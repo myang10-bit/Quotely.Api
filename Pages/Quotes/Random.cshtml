@@ -1,0 +1,46 @@
+﻿@page "/Random"
+@{
+    ViewData["Title"] = "Random";
+    Layout = "_Layout";
+}
+<script>requireAuth();</script>
+
+<div class="card" style="max-width: 720px;">
+    <div class="row">
+        <div>
+            <label>Tag (optional)</label>
+            <input id="tag" placeholder="e.g. wisdom" />
+        </div>
+        <div style="align-self:end;">
+            <button class="btn" onclick="load()">Get Random</button>
+        </div>
+    </div>
+</div>
+
+<div id="card" class="card" style="margin-top:12px;"></div>
+
+<script>
+    async function load(){
+        const tag = document.getElementById('tag').value.trim();
+        const url = new URL('/api/quotes/random', location.origin);
+        if(tag) url.searchParams.set('tag', tag);
+
+        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token() } });
+        const txt = await res.text();
+
+        const el = document.getElementById('card');
+
+        if(res.status === 404){ el.innerHTML = `<div class="muted">No quotes found.</div>`; return; }
+        if(!res.ok){ el.innerHTML = `<div class="muted">Error ${res.status}: ${txt}</div>`; return; }
+
+        const q = JSON.parse(txt);
+        el.innerHTML = `
+            <div style="font-size:18px; margin-bottom:6px;">${escapeHtml(q.text)}</div>
+            <div class="muted" style="margin-bottom:8px;">
+                ${q.sourceAuthor ? escapeHtml(q.sourceAuthor) : ''} ${q.sourceTitle ? '— ' + escapeHtml(q.sourceTitle) : ''}
+                ${q.sourceUrl ? ` · <a class="link" href="${q.sourceUrl}" target="_blank" rel="noreferrer">source</a>` : ''}
+            </div>
+            <div>${(q.tags || []).map(t => `<span class="pill">${escapeHtml(t)}</span>`).join('')}</div>
+        `;
+    }
+</script>

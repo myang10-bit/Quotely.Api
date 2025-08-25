@@ -1,0 +1,107 @@
+﻿@page "/Quotes"
+@{
+    ViewData["Title"] = "My Quotes";
+    Layout = "_Layout";
+}
+<script>requireAuth();</script>
+
+<div id="list" class="list"></div>
+
+<script>
+    // run after layout scripts are available
+    document.addEventListener('DOMContentLoaded', () => {
+      load();
+
+      // Event delegation for Delete buttons
+      const listEl = document.getElementById('list');
+      listEl.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.delete-btn');
+        if (!btn) return;
+
+        const id = btn.dataset.id;
+        if (!id) return;
+
+        const card = btn.closest('.card');
+        const quotePreview = card?.querySelector('.quote-text')?.textContent?.slice(0, 80) || '';
+
+        if (!confirm(`Delete this quote?\n\n"${quotePreview}..."`)) return;
+
+        // Disable button to prevent double clicks
+        btn.disabled = true;
+        btn.textContent = 'Deleting…';
+
+        try {
+          const res = await fetch(`/api/quotes/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': 'Bearer ' + token()
+            }
+          });
+
+          if (res.ok) {
+            // Remove card from the DOM
+            card?.remove();
+
+            // If list becomes empty, show empty state
+            if (!listEl.querySelector('.card')) {
+              listEl.innerHTML = `<div class="card muted">No quotes yet. Add one!</div>`;
+            }
+          } else {
+            const errText = await res.text().catch(() => '');
+            alert(`Failed to delete (HTTP ${res.status}). ${errText || ''}`);
+            btn.disabled = false;
+            btn.textContent = 'Delete';
+          }
+        } catch (err) {
+          alert(`Error deleting: ${String(err)}`);
+          btn.disabled = false;
+          btn.textContent = 'Delete';
+        }
+      });
+    });
+
+    async function load() {
+      const host = '/api/quotes';
+      const listEl = document.getElementById('list');
+      let html = '';
+
+      try {
+        const res = await fetch(host, {
+          headers: { 'Authorization': 'Bearer ' + token() }
+        });
+        const text = await res.text();
+
+        if (!res.ok) {
+          html = `<div class="card muted">Error ${res.status}: ${escapeHtml(text)}</div>`;
+          listEl.innerHTML = html;
+          return;
+        }
+
+        const data = JSON.parse(text);
+        const items = (data && Array.isArray(data.items)) ? data.items : [];
+
+        if (items.length === 0) {
+          html = `<div class="card muted">No quotes yet. Add one!</div>`;
+        } else {
+          html = items.map(q => `
+            <div class="card">
+              <div class="quote-text" style="font-size:18px; margin-bottom:6px;">${escapeHtml(q.text)}</div>
+              <div class="muted" style="margin-bottom:8px;">
+                ${q.sourceAuthor ? escapeHtml(q.sourceAuthor) : ''}
+                ${q.sourceTitle ? ' — ' + escapeHtml(q.sourceTitle) : ''}
+                ${q.sourceUrl ? ' · <a class="link" href="${q.sourceUrl}" target="_blank" rel="noreferrer">source</a>' : ''}
+              </div>
+              <div style="display:flex; gap:8px; align-items:center; justify-content:space-between;">
+                <div>${(q.tags||[]).map(t => `<span class="pill">${escapeHtml(t)}</span>`).join('')}</div>
+                <button class="delete-btn" data-id="${escapeHtml(String(q.id))}" aria-label="Delete quote">Delete</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        html = `<div class="card muted">Error: ${escapeHtml(String(err))}</div>`;
+      }
+
+      listEl.innerHTML = html;
+    }
+</script>

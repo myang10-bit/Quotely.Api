@@ -1,0 +1,10 @@
+﻿@page
+
+<script>
+    // on load, send to Login if no token
+    if (!localStorage.getItem('quotely_token')) {
+      window.location.href = '/Login';
+    } else {
+      window.location.href = '/Quotes';
+    }
+</script>

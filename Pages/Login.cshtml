@@ -1,0 +1,49 @@
+﻿@page
+@{
+    ViewData["Title"] = "Login";
+    Layout = "_Layout";
+}
+<div class="card">
+    <h2>Sign in to Quotely</h2>
+    <label>Email</label>
+    <input id="email" type="email" placeholder="you@example.com" />
+    <label>Password</label>
+    <input id="password" type="password" placeholder="••••••••" />
+    <div class="row">
+        <button class="btn" onclick="auth('login')">Log In</button>
+        <button class="btn secondary" onclick="auth('register')">Register</button>
+    </div>
+    <p id="status" class="muted"></p>
+</div>
+
+<script>
+    // Hide nav when not logged in
+    document.querySelector('.right')?.classList.add('muted');
+
+    async function auth(kind){
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const status = document.getElementById('status');
+      status.textContent = '';
+
+      if(!email || !password){ status.textContent = 'Email and password required.'; return; }
+
+      try{
+        const res = await fetch(`/api/auth/${kind}`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ email, password })
+        });
+        const txt = await res.text();
+        if(!res.ok){ status.textContent = `${kind} failed (${res.status}). ${txt}`; return; }
+        const data = JSON.parse(txt);
+        const tok = data.token || data.Token;
+        if(!tok){ status.textContent = 'No token returned.'; return; }
+        localStorage.setItem('quotely_token', tok);
+        localStorage.setItem('quotely_email', email);
+        window.location.href = '/Quotes';
+      }catch(e){
+        status.textContent = 'Network error.';
+      }
+    }
+</script>
